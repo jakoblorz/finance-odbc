@@ -21,7 +21,7 @@ var (
 	etfTableName        = "etf"
 	forexTableName      = "forex"
 	futureTableName     = "future"
-	indexTableName      = "index"
+	indexTableName      = "stockindex"
 	mutualfundTableName = "mutualfund"
 	optionTableName     = "option"
 
@@ -62,6 +62,10 @@ var (
 			fodbc.NewAnonFutureFromAPI,
 			fodbc.GetAnonFutureFromAPI,
 		},
+		indexTableName: []interface{}{
+			fodbc.NewAnonIndexFromAPI,
+			fodbc.GetAnonIndexFromAPI,
+		},
 		mutualfundTableName: []interface{}{
 			fodbc.NewAnonMutualFundFromAPI,
 			fodbc.GetAnonMutualFundFromAPI,
@@ -74,14 +78,14 @@ var (
 )
 
 var (
-	cryptoFlags     = []interface{}{cryptoTableName, flag.String("crypto", "", "")}
-	equityFlags     = []interface{}{equityTableName, flag.String("equity", "", "")}
-	etfFlags        = []interface{}{etfTableName, flag.String("etf", "", "")}
-	forexFlags      = []interface{}{forexTableName, flag.String("forex", "", "")}
-	futureFlags     = []interface{}{futureTableName, flag.String("future", "", "")}
-	indexFlags      = []interface{}{indexTableName, flag.String("index", "", "")}
-	mutualfundFlags = []interface{}{mutualfundTableName, flag.String("mutualfund", "", "")}
-	optionFlags     = []interface{}{optionTableName, flag.String("option", "", "")}
+	cryptoFlags     = []interface{}{cryptoTableName, flag.String(cryptoTableName, "", "")}
+	equityFlags     = []interface{}{equityTableName, flag.String(equityTableName, "", "")}
+	etfFlags        = []interface{}{etfTableName, flag.String(etfTableName, "", "")}
+	forexFlags      = []interface{}{forexTableName, flag.String(forexTableName, "", "")}
+	futureFlags     = []interface{}{futureTableName, flag.String(futureTableName, "", "")}
+	indexFlags      = []interface{}{indexTableName, flag.String(indexTableName, "", "")}
+	mutualfundFlags = []interface{}{mutualfundTableName, flag.String(mutualfundTableName, "", "")}
+	optionFlags     = []interface{}{optionTableName, flag.String(optionTableName, "", "")}
 )
 
 func parseFlagSet(fs []interface{}) (tableName string, value string, ok bool) {
