@@ -1,12 +1,16 @@
 package odbc
 
 import (
+	"time"
+
 	"github.com/piquette/finance-go"
 )
 
 // `db:"(.*)"`
 
 type Quote struct {
+	DBEntry
+
 	MarketID    string `db:"market_id" json:"market_id"`
 	MarketState string `db:"market_state" json:"market_state"`
 
@@ -72,6 +76,10 @@ type Quote struct {
 
 func NewQuoteFromAPI(d *finance.Quote) Quote {
 	return Quote{
+		DBEntry: DBEntry{
+			InsertedAt: time.Now().UTC(),
+		},
+
 		MarketID:    d.MarketID,
 		MarketState: string(d.MarketState),
 
