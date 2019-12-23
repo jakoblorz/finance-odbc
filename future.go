@@ -24,7 +24,7 @@ func NewAnonFutureFromAPI(c interface{}) (f interface{}, ok bool) {
 		return
 	}
 
-	f = NewFutureFromAPI(apiFuture)
+	f, ok = NewFutureFromAPI(apiFuture)
 	return
 }
 
@@ -32,8 +32,13 @@ func GetAnonFutureFromAPI(symbol string) (interface{}, error) {
 	return future.Get(symbol)
 }
 
-func NewFutureFromAPI(e *finance.Future) Future {
-	return Future{
+func NewFutureFromAPI(e *finance.Future) (f Future, ok bool) {
+	ok = e != nil && (&e.Quote) != nil
+	if !ok {
+		return
+	}
+
+	f = Future{
 		Quote: NewQuoteFromAPI(&e.Quote),
 
 		UnderlyingSymbol:         e.UnderlyingSymbol,
@@ -44,4 +49,5 @@ func NewFutureFromAPI(e *finance.Future) Future {
 		HeadSymbolAsString:       e.HeadSymbolAsString,
 		IsContractSymbol:         e.IsContractSymbol,
 	}
+	return
 }

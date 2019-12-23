@@ -23,7 +23,7 @@ func NewAnonCryptoFromAPI(c interface{}) (p interface{}, ok bool) {
 		return
 	}
 
-	p = NewCryptoFromAPI(apiCryptoPair)
+	p, ok = NewCryptoFromAPI(apiCryptoPair)
 	return
 }
 
@@ -31,8 +31,13 @@ func GetAnonCryptoFromAPI(symbol string) (interface{}, error) {
 	return crypto.Get(symbol)
 }
 
-func NewCryptoFromAPI(c *finance.CryptoPair) CryptoPair {
-	return CryptoPair{
+func NewCryptoFromAPI(c *finance.CryptoPair) (cp CryptoPair, ok bool) {
+	ok = c != nil && (&c.Quote) != nil
+	if !ok {
+		return
+	}
+
+	cp = CryptoPair{
 		Quote: NewQuoteFromAPI(&c.Quote),
 
 		Algorithm:           c.Algorithm,
@@ -42,4 +47,5 @@ func NewCryptoFromAPI(c *finance.CryptoPair) CryptoPair {
 		VolumeLastDay:       c.VolumeLastDay,
 		VolumeAllCurrencies: c.VolumeAllCurrencies,
 	}
+	return
 }

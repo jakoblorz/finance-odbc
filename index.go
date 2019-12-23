@@ -16,7 +16,7 @@ func NewAnonIndexFromAPI(c interface{}) (i interface{}, ok bool) {
 		return
 	}
 
-	i = NewIndexFromAPI(apiIndex)
+	i, ok = NewIndexFromAPI(apiIndex)
 	return
 }
 
@@ -24,8 +24,14 @@ func GetAnonIndexFromAPI(symbol string) (interface{}, error) {
 	return index.Get(symbol)
 }
 
-func NewIndexFromAPI(e *finance.Index) Index {
-	return Index{
+func NewIndexFromAPI(e *finance.Index) (i Index, ok bool) {
+	ok = e != nil && (&e.Quote) != nil
+	if !ok {
+		return
+	}
+
+	i = Index{
 		Quote: NewQuoteFromAPI(&e.Quote),
 	}
+	return
 }

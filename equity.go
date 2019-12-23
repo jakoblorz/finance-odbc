@@ -37,7 +37,7 @@ func NewAnonEquityFromAPI(c interface{}) (e interface{}, ok bool) {
 		return
 	}
 
-	e = NewEquityFromAPI(apiEquity)
+	e, ok = NewEquityFromAPI(apiEquity)
 	return
 }
 
@@ -45,8 +45,13 @@ func GetAnonEquityFromAPI(symbol string) (interface{}, error) {
 	return equity.Get(symbol)
 }
 
-func NewEquityFromAPI(e *finance.Equity) Equity {
-	return Equity{
+func NewEquityFromAPI(e *finance.Equity) (eq Equity, ok bool) {
+	ok = e != nil && (&e.Quote) != nil
+	if !ok {
+		return
+	}
+
+	eq = Equity{
 		Quote: NewQuoteFromAPI(&e.Quote),
 
 		LongName:  e.LongName,
@@ -70,4 +75,5 @@ func NewEquityFromAPI(e *finance.Equity) Equity {
 
 		SharesOutstanding: e.SharesOutstanding,
 	}
+	return
 }

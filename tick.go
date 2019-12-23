@@ -52,6 +52,25 @@ type Tick struct {
 	Ranges      []string `db:"-" json:"-"`
 }
 
+func (t *Tick) PermutateGranularity() []Tick {
+	ts := []Tick{}
+	foundDuplicateOriginGranularity := false
+	for _, r := range t.Ranges {
+		if !foundDuplicateOriginGranularity && r == t.Granularity {
+			foundDuplicateOriginGranularity = true
+		}
+
+		t2 := *t
+		t2.Granularity = r
+
+		ts = append(ts, t2)
+	}
+	if foundDuplicateOriginGranularity == false {
+		ts = append(ts, *t)
+	}
+	return ts
+}
+
 func NewTickFromAPI(x *MetaTick) Tick {
 	t, m := x.ChartBar, x.ChartMeta
 	return Tick{

@@ -20,7 +20,7 @@ func NewAnonETFFromAPI(c interface{}) (e interface{}, ok bool) {
 		return
 	}
 
-	e = NewETFFromAPI(apiETF)
+	e, ok = NewETFFromAPI(apiETF)
 	return
 }
 
@@ -28,12 +28,18 @@ func GetAnonETFFromAPI(symbol string) (interface{}, error) {
 	return etf.Get(symbol)
 }
 
-func NewETFFromAPI(e *finance.ETF) ETF {
-	return ETF{
+func NewETFFromAPI(e *finance.ETF) (etf ETF, ok bool) {
+	ok = e != nil && (&e.Quote) != nil
+	if !ok {
+		return
+	}
+
+	etf = ETF{
 		Quote: NewQuoteFromAPI(&e.Quote),
 
 		YTDReturn:                    e.YTDReturn,
 		TrailingThreeMonthReturns:    e.TrailingThreeMonthReturns,
 		TrailingThreeMonthNavReturns: e.TrailingThreeMonthNavReturns,
 	}
+	return
 }

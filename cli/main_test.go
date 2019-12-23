@@ -4,13 +4,23 @@ import "testing"
 
 func Test(t *testing.T) {
 
-	// asset := "MSFT"
-	// equityFlags[1] = &asset
+	DEBUG = true
 
-	asset := "^GSPC"
-	tickFlag = &asset
+	cryptoAssets := "GDAXI,acb,exf"
+	cryptoFlags[1] = &cryptoAssets
+
+	equityAssets := "APPL,AAPL"
+	equityFlags[1] = &equityAssets
+
+	indexAssets := "^GDAXI"
+	stockindexFlags[1] = &indexAssets
+
+	tickAssets := "AAPL"
+	tickFlag = &tickAssets
+
 	enableFlag := true
-	fifteenMinTickIntervalFlags[1] = &enableFlag
+	oneDayTickIntervalFlags[1] = &enableFlag
+	oneMonthTickIntervalFlags[1] = &enableFlag
 
 	main()
 	t.FailNow()

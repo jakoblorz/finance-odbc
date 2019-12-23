@@ -74,6 +74,10 @@ type Quote struct {
 	GMTOffsetMillisecond int `db:"gmt_offset_millisecond" json:"gmt_offset_millisecond"`
 }
 
+func (q Quote) GetType() string {
+	return q.Type
+}
+
 func NewQuoteFromAPI(d *finance.Quote) Quote {
 	return Quote{
 		DBEntry: DBEntry{

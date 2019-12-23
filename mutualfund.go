@@ -20,7 +20,7 @@ func NewAnonMutualFundFromAPI(c interface{}) (m interface{}, ok bool) {
 		return
 	}
 
-	m = NewMutualFundFromAPI(apiMutualFund)
+	m, ok = NewMutualFundFromAPI(apiMutualFund)
 	return
 }
 
@@ -28,12 +28,18 @@ func GetAnonMutualFundFromAPI(symbol string) (interface{}, error) {
 	return mutualfund.Get(symbol)
 }
 
-func NewMutualFundFromAPI(e *finance.MutualFund) MutualFund {
-	return MutualFund{
+func NewMutualFundFromAPI(e *finance.MutualFund) (m MutualFund, ok bool) {
+	ok = e != nil && (&e.Quote) != nil
+	if !ok {
+		return
+	}
+
+	m = MutualFund{
 		Quote: NewQuoteFromAPI(&e.Quote),
 
 		YTDReturn:                    e.YTDReturn,
 		TrailingThreeMonthReturns:    e.TrailingThreeMonthReturns,
 		TrailingThreeMonthNavReturns: e.TrailingThreeMonthNavReturns,
 	}
+	return
 }

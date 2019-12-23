@@ -23,7 +23,7 @@ func NewAnonOptionFromAPI(c interface{}) (o interface{}, ok bool) {
 		return
 	}
 
-	o = NewOptionFromAPI(apiOption)
+	o, ok = NewOptionFromAPI(apiOption)
 	return
 }
 
@@ -31,8 +31,13 @@ func GetAnonOptionFromAPI(symbol string) (interface{}, error) {
 	return option.Get(symbol)
 }
 
-func NewOptionFromAPI(e *finance.Option) Option {
-	return Option{
+func NewOptionFromAPI(e *finance.Option) (o Option, ok bool) {
+	ok = e != nil && (&e.Quote) != nil
+	if !ok {
+		return
+	}
+
+	o = Option{
 		Quote: NewQuoteFromAPI(&e.Quote),
 
 		UnderlyingSymbol:         e.UnderlyingSymbol,
@@ -42,4 +47,5 @@ func NewOptionFromAPI(e *finance.Option) Option {
 		ExpireDate:   e.ExpireDate,
 		Strike:       e.Strike,
 	}
+	return
 }
