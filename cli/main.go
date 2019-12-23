@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/piquette/finance-go/chart"
 	"github.com/piquette/finance-go/datetime"
 
@@ -104,18 +104,19 @@ var (
 		optionFlags,
 	}
 
-	tickFlag = flag.String(tickTableNamePrefix, "", "Download Pricing Information")
+	tickFlag        = flag.String(tickTableNamePrefix, "", "Download Pricing Information")
+	useAllTicksFlag = flag.Bool("all", false, "Download all possible time intervals")
 
-	oneMinTickIntervalFlags     = []interface{}{string(datetime.OneMin), flag.Bool(string(datetime.OneMin), false, "")}
-	twoMinTickIntervalFlags     = []interface{}{string(datetime.TwoMins), flag.Bool(string(datetime.TwoMins), false, "")}
-	fiveMinTickIntervalFlags    = []interface{}{string(datetime.FiveMins), flag.Bool(string(datetime.FiveMins), false, "")}
-	fifteenMinTickIntervalFlags = []interface{}{string(datetime.FifteenMins), flag.Bool(string(datetime.FifteenMins), false, "")}
-	thirtyMinTickIntervalFlags  = []interface{}{string(datetime.ThirtyMins), flag.Bool(string(datetime.ThirtyMins), false, "")}
-	sixtyMinTickIntervalFlags   = []interface{}{string(datetime.SixtyMins), flag.Bool(string(datetime.SixtyMins), false, "")}
-	ninetyMinTickIntervalFlags  = []interface{}{string(datetime.NinetyMins), flag.Bool(string(datetime.NinetyMins), false, "")}
-	oneHourTickIntervalFlags    = []interface{}{string(datetime.OneHour), flag.Bool(string(datetime.OneHour), false, "")}
-	oneDayTickIntervalFlags     = []interface{}{string(datetime.OneDay), flag.Bool(string(datetime.OneDay), false, "")}
-	fiveDayTickIntervalFlags    = []interface{}{string(datetime.FiveDay), flag.Bool(string(datetime.FiveDay), false, "")}
+	oneMinTickIntervalFlags     = []interface{}{string(datetime.OneMin), flag.Bool(string(datetime.OneMin), false, "Use a tick interval of 1min")}
+	twoMinTickIntervalFlags     = []interface{}{string(datetime.TwoMins), flag.Bool(string(datetime.TwoMins), false, "Use a tick interval of 2min")}
+	fiveMinTickIntervalFlags    = []interface{}{string(datetime.FiveMins), flag.Bool(string(datetime.FiveMins), false, "Use a tick interval of 5min")}
+	fifteenMinTickIntervalFlags = []interface{}{string(datetime.FifteenMins), flag.Bool(string(datetime.FifteenMins), false, "Use a tick interval of 15min")}
+	thirtyMinTickIntervalFlags  = []interface{}{string(datetime.ThirtyMins), flag.Bool(string(datetime.ThirtyMins), false, "Use a tick interval of 30min")}
+	sixtyMinTickIntervalFlags   = []interface{}{string(datetime.SixtyMins), flag.Bool(string(datetime.SixtyMins), false, "Use a tick interval of 60min")}
+	ninetyMinTickIntervalFlags  = []interface{}{string(datetime.NinetyMins), flag.Bool(string(datetime.NinetyMins), false, "Use a tick interval of 90min")}
+	oneHourTickIntervalFlags    = []interface{}{string(datetime.OneHour), flag.Bool(string(datetime.OneHour), false, "Use a tick interval of 1h")}
+	oneDayTickIntervalFlags     = []interface{}{string(datetime.OneDay), flag.Bool(string(datetime.OneDay), false, "Use a tick interval of 1d")}
+	fiveDayTickIntervalFlags    = []interface{}{string(datetime.FiveDay), flag.Bool(string(datetime.FiveDay), false, "Use a tick interval of 5d")}
 
 	allPricingInformationFlags = [][]interface{}{
 		oneMinTickIntervalFlags,
@@ -161,6 +162,39 @@ func parseFlagSetB(fs []interface{}) (tableName string, value bool, ok bool) {
 	return
 }
 
+func spin(prefix, final string) func(error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	if final == "" {
+		final = "DONE ✅\n"
+	}
+
+	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
+	s.Prefix = prefix
+	s.Start()
+
+	sig := make(chan int, 0)
+	go func() {
+		<-ctx.Done()
+		s.Stop()
+		close(sig)
+	}()
+
+	return func(err error) {
+		cancel()
+		if err != nil {
+			print(fmt.Sprintf("FAILED ❌\n%s\n", err))
+		} else {
+			print(final)
+		}
+		<-sig
+	}
+}
+
+func fatal(err error) {
+	print(err)
+	os.Exit(1)
+}
+
 func main() {
 	sqlite3.DefaultTypeMap = map[string]string{
 		"inserted_at": "DATETIME",
@@ -178,16 +212,14 @@ func main() {
 	go func() {
 		db, err := sqlx.Connect("dyn-sqlite3", "finance.sqlite3")
 		if err != nil {
-			log.Fatal(err)
+			fatal(err)
 		}
 		defer db.Close()
 
 		didDownloadMetaInformation := false
-		log.Println("Checking Meta Information Download")
 		for _, f := range allMetaInformationFlags {
 			tableName, value, ok := parseFlagSetS(f)
 			if !ok || value == "" {
-				log.Printf("Checking download request for %s:%s DONE", tableName, tableNamePadding[tableName])
 				continue
 			}
 
@@ -196,47 +228,52 @@ func main() {
 			assetObtainAPI := controlFuncs[1].(func(string) (interface{}, error))
 
 			values := strings.Split(value, ",")
-			log.Printf("Checking download request for %s:%s %d Download(s) required", tableName, tableNamePadding[tableName], len(values))
+			cancel := spin(
+				fmt.Sprintf("Downloading Metadata for %s:%s %d Download(s) required ", tableName, tableNamePadding[tableName], len(values)),
+				"",
+			)
 
-			for i, value := range values {
-				log.Printf(" (%d.1/%d) %s Downloading\n", i+1, len(values), value)
-
+			for _, value := range values {
 				retrieved, err := assetObtainAPI(value)
 				if err != nil {
-					log.Fatal(err)
+					cancel(err)
+					os.Exit(1)
 				}
 				asset, _ := assetConvertAPI(retrieved)
 
 				data, err := json.Marshal(asset)
 				if err != nil {
-					log.Fatal(err)
+					cancel(err)
+					os.Exit(1)
 				}
 
-				log.Printf(" (%d.2/%d) %s Inserting Data\n", i+1, len(values), value)
 				_, err = db.ExecContext(ctx, fmt.Sprintf("INSERT INTO %s JSON %s;", tableName, string(data)))
 				if err != nil {
-					log.Fatal(err)
+					cancel(err)
+					os.Exit(1)
 				}
 			}
+			cancel(nil)
 
 			didDownloadMetaInformation = true
 		}
 
 		didDownloadPricingInformation := false
-		log.Println("Checking Pricing Information Download")
 		if *tickFlag != "" {
 			values := strings.Split(*tickFlag, ",")
 			tUTCNow := time.Now().UTC()
 
 			for _, f := range allPricingInformationFlags {
 				interval, doDownload, ok := parseFlagSetB(f)
-				if !ok || !doDownload {
-					log.Printf("Checking download request for %s ticks: DONE", interval)
+				if !(*useAllTicksFlag) && (!ok || !doDownload) {
 					continue
 				}
 
-				for i, value := range values {
-					log.Printf(" (%d.1/%d) %s Downloading %s ticks", i+1, len(values), value, interval)
+				cancel := spin(
+					fmt.Sprintf("Downloading Historical Prices with an interval of %s: %d Download(s) required ", interval, len(values)),
+					"",
+				)
+				for _, value := range values {
 
 					iter := chart.Get(&chart.Params{
 						Symbol:   value,
@@ -254,23 +291,27 @@ func main() {
 
 						data, err := json.Marshal(tick)
 						if err != nil {
-							log.Fatal(err)
+							cancel(err)
+							os.Exit(1)
 						}
 
 						ticks = append(ticks, string(data))
 					}
 					if err := iter.Err(); err != nil {
-						log.Fatal(err)
+						cancel(err)
+						os.Exit(1)
 					}
 
-					log.Printf(" (%d.2/%d) %s Inserting a total of %d %s ticks", i+1, len(values), value, len(ticks), interval)
 					for _, tick := range ticks {
 						_, err = db.ExecContext(ctx, fmt.Sprintf("INSERT INTO %ss_%s JSON %s;", tickTableNamePrefix, interval, tick))
 						if err != nil {
-							log.Fatal(err)
+							cancel(err)
+							os.Exit(1)
 						}
 					}
+
 				}
+				cancel(nil)
 			}
 
 			didDownloadPricingInformation = len(values) != 0
